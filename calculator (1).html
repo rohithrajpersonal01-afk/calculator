@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: hsl(220, 20%, 10%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #f2f2f2;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 4px; }
+    .subtitle { color: hsl(220, 10%, 55%); margin-bottom: 28px; }
+
+    /* Phone Frame */
+    .phone {
+      width: 320px; height: 620px;
+      border-radius: 3rem;
+      border: 4px solid hsl(0, 0%, 30%);
+      background: hsl(0, 0%, 12%);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px 4px;
+      background: hsl(0, 0%, 12%);
+      z-index: 10;
+    }
+    .status-bar .time-date { font-size: 11px; color: hsl(220, 10%, 55%); font-weight: 500; }
+    .notch { display: flex; align-items: center; gap: 4px; }
+    .notch .speaker { width: 64px; height: 6px; border-radius: 9999px; background: hsl(0, 0%, 30%); }
+    .notch .camera { width: 12px; height: 12px; border-radius: 50%; background: hsl(0, 0%, 30%); }
+
+    /* Screen */
+    .screen {
+      flex: 1; overflow: hidden;
+      margin: 0 4px 4px;
+      border-radius: 0 0 2.5rem 2.5rem;
+      display: flex; flex-direction: column;
+    }
+
+    /* Display */
+    .display {
+      flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 20px;
+      background: hsl(220, 20%, 8%);
+    }
+    .display .prev { text-align: right; color: hsl(220, 10%, 55%); font-size: 14px; margin-bottom: 4px; min-height: 20px; }
+    .display .current {
+      text-align: right; font-size: 2.25rem; font-weight: 300;
+      letter-spacing: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* Buttons */
+    .buttons {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; padding: 16px;
+      background: hsl(220, 15%, 15%);
+    }
+    .btn {
+      height: 56px; border: none; border-radius: 1rem;
+      font-size: 1.1rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-num { background: hsl(220, 15%, 20%); color: #f2f2f2; }
+    .btn-num:hover { background: hsl(220, 15%, 28%); }
+    .btn-op { background: hsl(35, 100%, 55%); color: hsl(0, 0%, 5%); }
+    .btn-op:hover { background: hsl(35, 100%, 65%); }
+    .btn-func { background: hsl(220, 15%, 22%); color: hsl(0, 0%, 90%); }
+    .btn-func:hover { opacity: 0.8; }
+    .btn-wide { grid-column: span 2; }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      display: flex; align-items: center; justify-content: space-around;
+      padding: 12px 0;
+      background: hsl(0, 0%, 12%);
+      font-size: 1.1rem; color: hsl(220, 10%, 55%);
+    }
+    .bottom-nav .power {
+      background: hsl(220, 15%, 22%);
+      border-radius: 8px; padding: 6px 8px; font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Calculator</h1>
+  <p class="subtitle">A sleek mobile calculator</p>
+
+  <div class="phone">
+    <div class="status-bar">
+      <span class="time-date" id="timeDate"></span>
+      <div class="notch">
+        <div class="speaker"></div>
+        <div class="camera"></div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="display">
+        <div class="prev" id="prevDisplay"></div>
+        <div class="current" id="currentDisplay">0</div>
+      </div>
+
+      <div class="buttons" id="buttons">
+        <!-- Buttons injected by JS -->
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <span>🏠</span>
+      <span>📋</span>
+      <span class="power">⏻</span>
+      <span>↩</span>
+      <span>🔍</span>
+    </div>
+  </div>
+
+<script>
+  // --- Clock ---
+  function updateClock() {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    const date = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    document.getElementById('timeDate').textContent = time + ' · ' + date;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // --- Calculator ---
+  let display = '0', prev = null, op = null, fresh = true;
+
+  const buttons = [
+    { label: 'C', type: 'func' }, { label: '±', type: 'func' }, { label: '%', type: 'op' }, { label: '÷', type: 'op' },
+    { label: '7', type: 'num' }, { label: '8', type: 'num' }, { label: '9', type: 'num' }, { label: '×', type: 'op' },
+    { label: '4', type: 'num' }, { label: '5', type: 'num' }, { label: '6', type: 'num' }, { label: '-', type: 'op' },
+    { label: '1', type: 'num' }, { label: '2', type: 'num' }, { label: '3', type: 'num' }, { label: '+', type: 'op' },
+    { label: '0', type: 'num', wide: true }, { label: '.', type: 'num' }, { label: '=', type: 'op' },
+  ];
+
+  const container = document.getElementById('buttons');
+  buttons.forEach(b => {
+    const el = document.createElement('button');
+    el.textContent = b.label;
+    el.className = 'btn btn-' + (b.type === 'eq' ? 'op' : b.type) + (b.wide ? ' btn-wide' : '');
+    if (b.type === 'op' || b.label === '=') el.className = 'btn btn-op' + (b.wide ? ' btn-wide' : '');
+    el.addEventListener('click', () => handleClick(b));
+    container.appendChild(el);
+  });
+
+  function render() {
+    document.getElementById('currentDisplay').textContent = display;
+    document.getElementById('prevDisplay').textContent = prev && op ? prev + ' ' + op : '';
+  }
+
+  function handleClick(b) {
+    if (b.type === 'num') {
+      if (fresh) { display = b.label; fresh = false; }
+      else { display = (display === '0' && b.label !== '.') ? b.label : display + b.label; }
+    } else if (b.type === 'op' && b.label !== '=') {
+      prev = display; op = b.label; fresh = true;
+    } else if (b.label === '=') {
+      if (prev && op) {
+        const a = parseFloat(prev), bv = parseFloat(display);
+        let r = 0;
+        switch(op) {
+          case '+': r = a + bv; break;
+          case '-': r = a - bv; break;
+          case '×': r = a * bv; break;
+          case '÷': r = bv !== 0 ? a / bv : 0; break;
+          case '%': r = a % bv; break;
+        }
+        display = String(parseFloat(r.toFixed(10)));
+        prev = null; op = null; fresh = true;
+      }
+    } else if (b.label === 'C') {
+      display = '0'; prev = null; op = null; fresh = true;
+    } else if (b.label === '±') {
+      display = String(-parseFloat(display));
+    }
+    render();
+  }
+</script>
+
+</body>
+</html>
